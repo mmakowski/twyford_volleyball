@@ -8,7 +8,7 @@ package com.mmakowski.android.volleyball.model;
  */
 public class Ball {
 	// 1 = ideally elastic
-	public static final float REBOUND_FACTOR = 0.7f;
+	public static final float REBOUND_FACTOR = 0.8f;
 	// the drag 
 	public static final float AERODYNAMIC_DRAG_COEFFICIENT = 0.002f;
 

@@ -35,11 +35,11 @@ public class Court {
 		int playerPosY = playerHeight + floorLevel;
 		for (int i = 0; i < 2; i++) {
 			for (int j = 0; j < playersPerTeam; j++) 
-				players[i][j] = new Player(netPositionX + (i * 2 - 1) * (j + 1) * netPositionX / (playersPerTeam + 1) + courtOffset - (playerWidth / 2), playerPosY); 
+				players[i][j] = new Player(netPositionX + (i * 2 - 1) * (j + 1) * width / (2 * (playersPerTeam + 1)) - (playerWidth / 2), playerPosY); 
 		}
-		ball = new Ball(0, netHeight);
-		ball.velocityX = 200;
-		ball.velocityY = 200;
+		ball = new Ball(courtOffset / 2, netHeight + floorLevel);
+		ball.velocityX = 230;
+		ball.velocityY = 100;
 	}
 
 	public void update(long elapsedTimeMs) {
@@ -75,6 +75,7 @@ public class Court {
 		viewWidth = width;
 		viewHeight = height;
 		this.width = (int) (width * COURT_WIDTH_TO_VIEW_WIDTH_RATIO);
+		courtOffset = (viewWidth - this.width) / 2;
 		netPositionX = width / 2;
 		netHeight = (int) (height * NET_HEIGHT_TO_VIEW_HEIGHT_RATIO);
 		floorLevel = (int) (height * FLOOR_LEVEL_TO_VIEW_HEIGHT_RATIO);

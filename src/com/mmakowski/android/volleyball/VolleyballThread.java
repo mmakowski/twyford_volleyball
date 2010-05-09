@@ -21,7 +21,7 @@ public class VolleyballThread extends Thread {
 	public static final int STATE_PAUSE = 1;
 	public static final int STATE_RUNNING = 3;
 	
-	private static final long FRAME_DELAY = 20;
+	private static final long FRAME_DELAY = 10;
 	private static final int PLAYERS_PER_TEAM = 1;
 
 	private final SurfaceHolder surfaceHolder;
@@ -64,8 +64,8 @@ public class VolleyballThread extends Thread {
 						// updateAnimation();
 					}
 					draw(canvas);
-					sleep(FRAME_DELAY);
 				}
+				sleep(FRAME_DELAY);
 			} catch (InterruptedException e) {
 				// ignore
 			} finally {
