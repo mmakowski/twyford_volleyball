@@ -5,11 +5,10 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
-import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.mmakowski.android.volleyball.model.Court;
+import com.mmakowski.android.volleyball.model.Player;
 
 /**
  * The game thread.
@@ -20,10 +19,9 @@ import com.mmakowski.android.volleyball.model.Court;
 public class VolleyballThread extends Thread {
 	public static final int STATE_INIT = 0;
 	public static final int STATE_PAUSE = 1;
-	public static final int STATE_READY = 2;
 	public static final int STATE_RUNNING = 3;
 	
-	private static final long FRAME_DELAY = 2000;
+	private static final long FRAME_DELAY = 20;
 	private static final int PLAYERS_PER_TEAM = 1;
 
 	private final SurfaceHolder surfaceHolder;
@@ -33,38 +31,34 @@ public class VolleyballThread extends Thread {
 	
 	private Court court;
 
-	private int floorLevel;
 	private int canvasWidth;
 	private int canvasHeight;
-	private int playerWidth;
-	private int playerHeight;
-	private int ballWidth;
-	private int ballHeight;
 	private Bitmap backgroundImage;
-	private Drawable playerImage;
-	private Drawable ballImage;
+	private Bitmap playerImage;
+	private Bitmap ballImage;
+	private long prevFrameTime;
+	private long currFrameTime;
 	
 	public VolleyballThread(SurfaceHolder holder, Context context) {
 		surfaceHolder = holder;
 		this.context = context;
 		Resources res = context.getResources();
 		backgroundImage = BitmapFactory.decodeResource(res, R.drawable.background);
-		playerImage = context.getResources().getDrawable(R.drawable.player);
-		playerWidth = playerImage.getIntrinsicWidth();
-		playerHeight = playerImage.getIntrinsicHeight();
-		ballImage = context.getResources().getDrawable(R.drawable.ball);
-		ballWidth = ballImage.getIntrinsicWidth();
-		ballHeight = ballImage.getIntrinsicHeight();
-		court = new Court(800, PLAYERS_PER_TEAM);
+		playerImage = BitmapFactory.decodeResource(res, R.drawable.player);
+		ballImage = BitmapFactory.decodeResource(res, R.drawable.ball);
+		court = new Court();
 	}
 
 	@Override
 	public void run() {
+		court.setUp(PLAYERS_PER_TEAM);
 		while (running) {
 			Canvas canvas = null;
 			try {
 				canvas = surfaceHolder.lockCanvas(null);
 				synchronized (surfaceHolder) {
+					prevFrameTime = currFrameTime == 0 ? System.currentTimeMillis() : currFrameTime;
+					currFrameTime = System.currentTimeMillis();
 					if (state == STATE_RUNNING) {
 						updatePhysics();
 						// updateAnimation();
@@ -86,20 +80,18 @@ public class VolleyballThread extends Thread {
 	}
 
 	private void updatePhysics() {
-		// TODO Auto-generated method stub
+		court.update(currFrameTime - prevFrameTime);
 	}
 
 	private void draw(Canvas canvas) {
 		canvas.drawBitmap(backgroundImage, 0, 0, null);
-		int yTop = canvasHeight - playerHeight - floorLevel;
 		for (int t = 0; t < 2; t++) {
 			for (int p = 0; p < PLAYERS_PER_TEAM; p++) {
-				int xLeft = court.players[t][p].positionX;
-				//Log.w(this.getClass().getName(), String.valueOf(xLeft));
-				playerImage.setBounds(xLeft, yTop, xLeft + playerWidth, yTop + playerHeight);
-		        playerImage.draw(canvas);		
+				Player player = court.players[t][p];
+				canvas.drawBitmap(playerImage, player.positionX, canvasHeight - player.positionY, null);
 			}
 		}
+		canvas.drawBitmap(ballImage, court.ball.positionX, canvasHeight - court.ball.positionY, null);
 	}
 
 	public void pause() {
@@ -109,6 +101,13 @@ public class VolleyballThread extends Thread {
 		}
 	}
 
+	public void unpause() {
+		synchronized (surfaceHolder) {
+			if (state == STATE_PAUSE)
+				setState(STATE_RUNNING);
+		}
+		
+	}
 	public void setState(int state) {
 		synchronized (surfaceHolder) {
 			this.state = state;
@@ -123,9 +122,13 @@ public class VolleyballThread extends Thread {
 		synchronized (surfaceHolder) {
 			canvasWidth = width;
 			canvasHeight = height;
-			floorLevel = 20 * height / 480;
+			court.setViewDimensions(width, height); 
 			backgroundImage = Bitmap.createScaledBitmap(backgroundImage, width, height, true);
 		}
+	}
+
+	public int getGameState() {
+		return state;
 	}
 
 }

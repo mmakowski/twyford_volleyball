@@ -2,6 +2,7 @@ package com.mmakowski.android.volleyball;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -22,7 +23,7 @@ public class Volleyball extends Activity {
         VolleyballView view = (VolleyballView) findViewById(R.id.volleyball);
         thread = view.getThread();
         if (savedInstanceState == null) {
-            thread.setState(VolleyballThread.STATE_READY);
+            thread.setState(VolleyballThread.STATE_PAUSE);
         } else {
             //TODO: thread.restoreState(savedInstanceState);
         }
@@ -40,4 +41,14 @@ public class Volleyball extends Activity {
         //TODO: thread.saveState(outState);
     }
     
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		if (event.getAction() == MotionEvent.ACTION_DOWN) {
+			if (thread.getGameState() == VolleyballThread.STATE_PAUSE) 
+				thread.unpause();
+			else
+				thread.pause();
+		}
+		return super.onTouchEvent(event);
+	}    
 }
