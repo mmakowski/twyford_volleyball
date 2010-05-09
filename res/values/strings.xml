@@ -2,4 +2,6 @@
 <resources>
     <string name="hello">Hello World, Volleyball!</string>
     <string name="app_name">Twyford Volleyball</string>
+<string name="menu_restart">Restart</string>
+<string name="menu_pause">Pause</string>
 </resources>
