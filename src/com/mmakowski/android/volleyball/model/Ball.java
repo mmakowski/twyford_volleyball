@@ -11,9 +11,4 @@ public class Ball {
 	public int positionY;
 	public float velocityX;
 	public float velocityY;
-	
-	Ball(int positionX, int positionY) {
-		this.positionX = positionX;
-		this.positionY = positionY;
-	}
 }

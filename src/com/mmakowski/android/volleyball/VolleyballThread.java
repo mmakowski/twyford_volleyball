@@ -59,12 +59,12 @@ public class VolleyballThread extends Thread {
 		this.running = running;
 	}
 
-	public int getGameState() {
-		return state;
-	}
-
 	public boolean isRunning() {
 		return running;
+	}
+
+	public boolean isPaused() {
+		return state == STATE_PAUSED;
 	}
 
 }

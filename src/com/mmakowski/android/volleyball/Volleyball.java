@@ -22,7 +22,7 @@ import com.mmakowski.android.volleyball.model.Court;
  */
 public class Volleyball extends Activity implements SurfaceHolder.Callback {
 	private static final int PLAYERS_PER_TEAM = 1;
-
+	
 	private static final int MENU_RESTART = 1;
 	private static final int MENU_PAUSE = 2;
 	
@@ -56,7 +56,6 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onResume() {
     	super.onResume();
-    	if (!court.isSetUp()) court.setUp(PLAYERS_PER_TEAM);
 		thread = new VolleyballThread(court, view);
     }
     
@@ -69,34 +68,29 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
-			if (thread.getGameState() == VolleyballThread.STATE_PAUSED) 
-				thread.unpause();
-			else
-				thread.pause();
+			court.movePlayer(Court.HUMAN_TEAM, (int) event.getX());
 		}
 		return super.onTouchEvent(event);
 	}    
 	
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case MENU_RESTART:
-        		court.setUp(PLAYERS_PER_TEAM);
-        		thread.pause();
-                return true;
-            case MENU_PAUSE:
-    			if (thread.getGameState() == VolleyballThread.STATE_PAUSED) 
-    				thread.unpause();
-    			else
-    				thread.pause();
-        		// TODO: change manu item caption to "resume" when paused
-                return true;
-        }
+    private boolean menuPause(MenuItem item) {
+		if (thread.isPaused()) { 
+			thread.unpause();
+			item.setTitle(R.string.menu_pause);
+		} else {
+			thread.pause();
+			item.setTitle(R.string.menu_resume);
+		}
+		return true;
+	}
 
-        return false;
-    }
+	private boolean menuRestart() {
+		court.setUp(PLAYERS_PER_TEAM);
+		thread.pause();
+        return true;
+	}
 
-    @Override
+	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.add(0, MENU_RESTART, 0, R.string.menu_restart);
@@ -104,8 +98,18 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
         return true;
     }
     
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case MENU_RESTART: return menuRestart();
+            case MENU_PAUSE: return menuPause(item);
+        }
+        return false;
+    }
+
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 		court.setViewDimensions(width, height); 
+    	if (!court.isSetUp()) court.setUp(PLAYERS_PER_TEAM);
 		view.setSurfaceSize(width, height);
 	}
 
