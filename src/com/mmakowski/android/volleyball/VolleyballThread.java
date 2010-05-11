@@ -1,5 +1,6 @@
 package com.mmakowski.android.volleyball;
 
+import com.mmakowski.android.volleyball.ai.AI;
 import com.mmakowski.android.volleyball.model.Court;
 
 /**
@@ -20,10 +21,12 @@ public class VolleyballThread extends Thread {
 	
 	private final Court court;
 	private final VolleyballView view;
+	private final AI ai; 
 
-	public VolleyballThread(Court court, VolleyballView view) {
+	public VolleyballThread(Court court, AI ai, VolleyballView view) {
 		this.court = court;
 		this.view = view;
+		this.ai = ai;
 	}
 
 	@Override
@@ -35,6 +38,7 @@ public class VolleyballThread extends Thread {
 				prevFrameTime = currFrameTime == 0 ? System.currentTimeMillis() : currFrameTime;
 				currFrameTime = System.currentTimeMillis();
 				if (state == STATE_RUNNING) {
+					ai.movePlayers(court);
 					court.update(currFrameTime - prevFrameTime);
 				}
 				view.draw(court);

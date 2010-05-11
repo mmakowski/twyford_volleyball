@@ -9,12 +9,14 @@ import android.view.SurfaceHolder;
 import android.view.Window;
 import android.view.WindowManager;
 
+import com.mmakowski.android.volleyball.ai.Follower;
 import com.mmakowski.android.volleyball.model.Court;
 
 /**
  * The main activity of the game. Connects the main components, i.e.
  * - the view
  * - the model
+ * - the AI
  * - the game thread
  * to each other, handles user input and app lifecycle events. 
  * 
@@ -56,7 +58,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onResume() {
     	super.onResume();
-		thread = new VolleyballThread(court, view);
+		thread = new VolleyballThread(court, new Follower(), view);
     }
     
     @Override
@@ -115,7 +117,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 
 	public void surfaceCreated(SurfaceHolder holder) {
 		if (thread == null) {
-	        thread = new VolleyballThread(court, view);
+	        thread = new VolleyballThread(court, new Follower(), view);
 		}
 		if (!thread.isRunning()) {
 			thread.setRunning(true);

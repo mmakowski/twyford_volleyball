@@ -6,7 +6,6 @@ import static com.mmakowski.android.volleyball.model.GameElementDimensions.FLOOR
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.NET_HEIGHT_TO_VIEW_HEIGHT_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.PLAYER_HEIGHT_TO_VIEW_HEIGHT_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.PLAYER_WIDTH_TO_VIEW_WIDTH_RATIO;
-import android.util.Log;
 
 /**
  * Court represents all elements of the game and takes care of updating the physics.
@@ -79,23 +78,34 @@ public final class Court {
 	private void updatePlayers(float secFraction) {
 		for (int t = 0; t < 2; t++) {
 			for (Player player : players[t]) {
-				if (player.targetPositionX != player.positionX) {
+				int posDiff = Math.abs(player.targetPositionX - player.positionX);
+				if (posDiff != 0) {
 					int dir = player.targetPositionX > player.positionX ? 1 : -1;
-					player.positionX += dir * Physics.PLAYER_MAX_MOVEMENT_SPEED * secFraction;
+					int move = (int) Math.min(posDiff, Physics.PLAYER_MAX_MOVEMENT_SPEED * secFraction);
+					player.positionX += dir * move;
 				}
 			}
 		}
 	}
 
 	private void updateBall(float secFraction) {
-		//Log.w(getClass().getName(), String.valueOf(elapsedTimeMs));
-		//Log.w(getClass().getName(), String.valueOf(secFraction));
 		ball.positionX = (int) (ball.positionX + ball.velocityX * secFraction);
 		ball.velocityX += Physics.aerodynamicDragDeceleration(ball.velocityX) * secFraction;  
 		//Log.w(getClass().getName(), String.valueOf(ball.velocityX));
-		// TODO: full collision detection 
 		ball.positionY = (int) (ball.positionY + ball.velocityY * secFraction);
-		if (ball.positionY - ballSize < floorLevel) {
+		for (int t = 0; t < 2; t++) {
+			for (Player player : players[t]) {
+				int offsetX = player.positionX - ball.positionX;
+				int offsetY = player.positionY - ball.positionY;
+				// TODO: better player collision
+				if (offsetX >= -playerWidth && offsetX <= ballSize && ball.positionY + ballSize > floorLevel && offsetY >= -ballSize) {
+					ball.velocityX *= 2 * offsetX / (playerWidth + ballSize) - 1;
+					ball.velocityY *= -(ball.positionY - floorLevel - ballSize) / (player.positionY + 2 * ballSize - floorLevel); 
+					return;
+				}
+			}
+		}
+		if (ball.positionY - ballSize <= floorLevel) {
 			ballTouchedGround();
 			/*
 			ball.positionY = (int) (floorLevel + ballSize + (floorLevel - (ball.positionY - ballSize)) * Physics.BALL_REBOUND_FACTOR);
@@ -104,6 +114,7 @@ public final class Court {
 		} else {
 			ball.velocityY -= Physics.GRAVITY * secFraction;
 		}
+		// TODO: net collision 
 		ball.velocityY += Physics.aerodynamicDragDeceleration(ball.velocityY) * secFraction;
 		//Log.w(getClass().getName(), String.valueOf(ball.velocityY));
 	}
@@ -138,7 +149,9 @@ public final class Court {
 
 	public void movePlayer(int team, int targetX) {
 		if (targetX < 0) targetX = 0;
-		else if (targetX > netPositionX) targetX = netPositionX - playerWidth / 2;
+		else if (targetX + playerWidth > viewWidth) targetX = viewWidth - playerWidth;
+		else if (team == HUMAN_TEAM && targetX + playerWidth > netPositionX) targetX = netPositionX - playerWidth;
+		else if (team == AI_TEAM && targetX < netPositionX) targetX = netPositionX;
 		players[team][0].targetPositionX = targetX;
 	}
 
