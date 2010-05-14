@@ -1,5 +1,7 @@
 package com.mmakowski.android.volleyball.model;
 
+import static java.lang.Math.*;
+
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.BALL_SIZE_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.COURT_WIDTH_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.FLOOR_LEVEL_TO_VIEW_HEIGHT_RATIO;
@@ -78,10 +80,10 @@ public final class Court {
 	private void updatePlayers(float secFraction) {
 		for (int t = 0; t < 2; t++) {
 			for (Player player : players[t]) {
-				int posDiff = Math.abs(player.targetPositionX - player.positionX);
+				int posDiff = abs(player.targetPositionX - player.positionX);
 				if (posDiff != 0) {
 					int dir = player.targetPositionX > player.positionX ? 1 : -1;
-					int move = (int) Math.min(posDiff, Physics.PLAYER_MAX_MOVEMENT_SPEED * secFraction);
+					int move = (int) min(posDiff, Physics.PLAYER_MAX_MOVEMENT_SPEED * secFraction);
 					player.positionX += dir * move;
 				}
 			}
@@ -97,10 +99,13 @@ public final class Court {
 			for (Player player : players[t]) {
 				int offsetX = player.positionX - ball.positionX;
 				int offsetY = player.positionY - ball.positionY;
-				// TODO: better player collision
+				// TODO: better player bounce
 				if (offsetX >= -playerWidth && offsetX <= ballSize && ball.positionY + ballSize > floorLevel && offsetY >= -ballSize) {
-					ball.velocityX *= 2 * offsetX / (playerWidth + ballSize) - 1;
-					ball.velocityY *= -(ball.positionY - floorLevel - ballSize) / (player.positionY + 2 * ballSize - floorLevel); 
+					double alphaX = -2f * ((double) offsetX + ballSize) / ((double) playerWidth + ballSize) * PI / 4.0;
+					double alphaY = ((double) ball.positionY - floorLevel - ballSize) / ((double) player.positionY - floorLevel - ballSize) * PI / 4.0;
+					double alpha = alphaX + alphaY;
+					ball.velocityX = 200f * (float) cos(alpha);
+					ball.velocityY = 200f * (float) sin(alpha); 
 					return;
 				}
 			}
@@ -121,7 +126,7 @@ public final class Court {
 	
 	private void ballTouchedGround() {
 		int winner;
-		int x = ball.positionX;
+		int x = ball.positionX + ballSize / 2;
 		if (x < courtOffset || x > viewWidth - courtOffset) winner = opponent(lastTouch);
 		else if (x <= netPositionX) winner = AI_TEAM;
 		else winner = HUMAN_TEAM;
