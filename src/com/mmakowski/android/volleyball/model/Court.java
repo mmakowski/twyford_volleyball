@@ -1,13 +1,16 @@
 package com.mmakowski.android.volleyball.model;
 
-import static java.lang.Math.*;
-
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.BALL_SIZE_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.COURT_WIDTH_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.FLOOR_LEVEL_TO_VIEW_HEIGHT_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.NET_HEIGHT_TO_VIEW_HEIGHT_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.PLAYER_HEIGHT_TO_VIEW_HEIGHT_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.PLAYER_WIDTH_TO_VIEW_WIDTH_RATIO;
+import static java.lang.Math.abs;
+import static java.lang.Math.min;
+import static java.lang.Math.pow;
+
+import java.util.Random;
 
 /**
  * Court represents all elements of the game and takes care of updating the physics.
@@ -18,6 +21,8 @@ import static com.mmakowski.android.volleyball.model.GameElementDimensions.PLAYE
 public final class Court {
 	public static final int HUMAN_TEAM = 0;
 	public static final int AI_TEAM = 1;
+	public static final int SIDE_LEFT = -1;
+	public static final int SIDE_RIGHT = 1;
 	
 	private static final int STATE_NOT_SET_UP = 0;
 	private static final int STATE_HUMAN_TEAM_SERVE = 1;
@@ -32,20 +37,25 @@ public final class Court {
 	public int netHeight = 130;
 	public Player[][] players;
 	public Ball ball;
-	private int floorLevel;
+	public int floorLevel;
+	public int humanSide = SIDE_LEFT;
 	private int ballSize;
 	private int playerWidth;
 	private int playerHeight;
 	private int courtOffset;
 	private int[] points = {0, 0};
 	
+	private Random random = new Random();
+	
 	public synchronized void setUp(int playersPerTeam) {
 		players = new Player[2][playersPerTeam];
 		int playerPosY = playerHeight + floorLevel;
 		// distribute the players evenly in the court
-		for (int i = 0; i < 2; i++) {
-			for (int j = 0; j < playersPerTeam; j++) 
-				players[i][j] = new Player(netPositionX + (i * 2 - 1) * (j + 1) * width / (2 * (playersPerTeam + 1)) - (playerWidth / 2), playerPosY); 
+		for (int t = 0; t < 2; t++) {
+			for (int j = 0; j < playersPerTeam; j++) {
+				players[t][j] = new Player(t, netPositionX + (t * 2 - 1) * (j + 1) * width / (2 * (playersPerTeam + 1)) - (playerWidth / 2), playerPosY);
+				players[t][j].setDefaultBallTarget(this, oppositeSide(t));
+			}
 		}
 		ball = new Ball();
 		enterState(STATE_HUMAN_TEAM_SERVE);
@@ -126,13 +136,31 @@ public final class Court {
 	}
 
 	private void bounceBallOffPlayer(Player player, int offsetX) {
-		double alphaX = -2f * ((double) offsetX + ballSize) / ((double) playerWidth + ballSize) * PI / 4.0;
-		double alphaY = ((double) ball.positionY - floorLevel - ballSize) / ((double) player.positionY - floorLevel - ballSize) * PI / 4.0;
-		double alpha = alphaX + alphaY;
-		ball.velocityX = 200f * (float) cos(alpha);
-		ball.velocityY = 200f * (float) sin(alpha);
+		int oppositeSide = oppositeSide(player.team);
+		int idealY = player.positionY + ballSize;
+		int idealOffsetX = oppositeSide == SIDE_LEFT ? player.positionX - ballSize : player.positionX + playerWidth;
+		float ballPositionPenaltyX = ((float) offsetX - idealOffsetX) / ((float) playerWidth + (float) ballSize); // worst X is at the opposite edge of the player
+		float ballPositionPenaltyY = ((float) ball.positionY - idealY) / ((float) playerHeight); // worst Y is at the feet of the player;
+		float ballPositionPenalty = ballPositionPenaltyX * ballPositionPenaltyY;
+		  
+		ball.velocityY = 160f + penalty(ballPositionPenalty, 20) + penalty(player.accuracy, 20);
+		ball.velocityX = 120f * oppositeSide * (float) pow(((float) abs(player.positionX - player.ballTargetX)) / ((float) width), 2)
+				+ penalty(ballPositionPenalty, 20) + penalty(player.accuracy, 20);
 	}
 	
+	/**
+	 * @param bonus a number in the range 0..1 -- if 1 there will be no penalty, if 0 there will be maximum penalty 
+	 * @param max maximum penalty 
+	 * @return normally-distributed penalty in the range -(1 - bonus) * max .. (1 - bonus) * max 
+	 */
+	private float penalty(float bonus, float max) {
+		return 2f * ((float) random.nextGaussian() - 0.5f) * (1f - bonus) * max;
+	}
+
+	private int oppositeSide(int team) {
+		return team == AI_TEAM ? humanSide : -1 * humanSide;  
+	}
+
 	private void ballTouchedGround() {
 		int winner;
 		int x = ball.positionX + ballSize / 2;

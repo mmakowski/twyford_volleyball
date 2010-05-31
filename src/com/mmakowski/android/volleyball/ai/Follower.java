@@ -3,8 +3,8 @@ package com.mmakowski.android.volleyball.ai;
 import com.mmakowski.android.volleyball.model.Court;
 
 /**
- * An extremely simple AI. Always follow the ball if in our part of the court. 
- *  
+ * An extremely simple AI. Always follow the ball if in our part of the court.
+ * 
  * @author mmakowski
  */
 public class Follower implements AI {
