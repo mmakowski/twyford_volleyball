@@ -1,6 +1,7 @@
 package com.mmakowski.android.volleyball;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,9 +36,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.main);
+        setUpScreen();
         view = (VolleyballView) findViewById(R.id.volleyball);
         view.getHolder().addCallback(this);
         court = new Court();
@@ -48,6 +47,13 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
             //TODO: thread.restoreState(savedInstanceState);
         }*/
     }
+
+	private void setUpScreen() {
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(R.layout.main);
+	}
     
     @Override
     protected void onPause() {
