@@ -1,5 +1,6 @@
 package com.mmakowski.android.volleyball.model;
 
+import static com.mmakowski.android.volleyball.model.GameplayConstants.*;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.BALL_SIZE_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.COURT_WIDTH_TO_VIEW_WIDTH_RATIO;
 import static com.mmakowski.android.volleyball.model.GameElementDimensions.FLOOR_LEVEL_TO_VIEW_HEIGHT_RATIO;
@@ -34,7 +35,7 @@ public final class Court {
 	private int viewWidth;
 	public int width;
 	public int netPositionX;
-	public int netHeight = 130;
+	public int netHeight;
 	public Player[][] players;
 	public Ball ball;
 	public int floorLevel;
@@ -140,14 +141,14 @@ public final class Court {
 	private void bounceBallOffPlayer(Player player, int offsetX) {
 		int oppositeSide = oppositeSide(player.team);
 		int idealY = player.positionY + ballSize;
-		int idealOffsetX = oppositeSide == SIDE_LEFT ? player.positionX - ballSize : player.positionX + playerWidth;
-		float ballPositionPenaltyX = ((float) offsetX - idealOffsetX) / ((float) playerWidth + (float) ballSize); // worst X is at the opposite edge of the player
-		float ballPositionPenaltyY = ((float) ball.positionY - idealY) / ((float) playerHeight); // worst Y is at the feet of the player;
-		float ballPositionPenalty = ballPositionPenaltyX * ballPositionPenaltyY;
+		int idealX = oppositeSide == SIDE_LEFT ? player.positionX - ballSize : player.positionX + playerWidth;
+		float ballPositionBonusX = 1f - abs(((float) ball.positionX - idealX) / ((float) playerWidth + (float) ballSize)); // worst X is at the opposite edge of the player
+		float ballPositionBonusY = 1f - abs(((float) ball.positionY - idealY) / ((float) playerHeight)); // worst Y is at the feet of the player;
+		float ballPositionBonus = ballPositionBonusX * ballPositionBonusY;
 		  
-		ball.velocityY = 160f + penalty(ballPositionPenalty, 20) + penalty(player.accuracy, 20);
+		ball.velocityY = 180f * penalty(ballPositionBonus, MAX_DIFFICULT_POSITION_PENALTY) * penalty(player.accuracy, MAX_PLAYER_INACCURACY_PENALTY);
 		ball.velocityX = 120f * oppositeSide * (float) pow(((float) abs(player.positionX - player.ballTargetX)) / ((float) width), 2)
-				+ penalty(ballPositionPenalty, 20) + penalty(player.accuracy, 20);
+				* penalty(ballPositionBonus, MAX_DIFFICULT_POSITION_PENALTY) * penalty(player.accuracy, MAX_PLAYER_INACCURACY_PENALTY);
 	}
 	
 	/**
@@ -156,7 +157,7 @@ public final class Court {
 	 * @return normally-distributed penalty in the range -(1 - bonus) * max .. (1 - bonus) * max 
 	 */
 	private float penalty(float bonus, float max) {
-		return 2f * ((float) random.nextGaussian() - 0.5f) * (1f - bonus) * max;
+		return 2f * ((float) random.nextGaussian() - 0.5f) * (1f - bonus) * max + 1f;
 	}
 
 	private int oppositeSide(int team) {
