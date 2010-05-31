@@ -127,6 +127,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 		}
 		if (!thread.isRunning()) {
 			thread.setRunning(true);
+			thread.pause();
 			thread.start();
 		}
 	}

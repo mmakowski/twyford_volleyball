@@ -69,6 +69,7 @@ public final class Court {
 			ball.velocityX = 230;
 			ball.velocityY = 100;
 			lastTouch = HUMAN_TEAM;
+			enterState(STATE_PLAY);
 			break;
 		case STATE_AI_TEAM_SERVE:
 			ball.positionX = viewWidth - courtOffset / 2;
@@ -76,6 +77,7 @@ public final class Court {
 			ball.velocityX = -230;
 			ball.velocityY = 100;
 			lastTouch = AI_TEAM;
+			enterState(STATE_PLAY);
 			break;
 		}
 		state = newState;
