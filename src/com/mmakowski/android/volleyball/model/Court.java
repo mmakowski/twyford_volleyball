@@ -100,12 +100,9 @@ public final class Court {
 				int offsetX = player.positionX - ball.positionX;
 				int offsetY = player.positionY - ball.positionY;
 				// TODO: better player bounce
-				if (offsetX >= -playerWidth && offsetX <= ballSize && ball.positionY + ballSize > floorLevel && offsetY >= -ballSize) {
-					double alphaX = -2f * ((double) offsetX + ballSize) / ((double) playerWidth + ballSize) * PI / 4.0;
-					double alphaY = ((double) ball.positionY - floorLevel - ballSize) / ((double) player.positionY - floorLevel - ballSize) * PI / 4.0;
-					double alpha = alphaX + alphaY;
-					ball.velocityX = 200f * (float) cos(alpha);
-					ball.velocityY = 200f * (float) sin(alpha); 
+				if (ballHitPlayer(offsetX, offsetY)) {
+					bounceBallOffPlayer(player, offsetX);
+					lastTouch = t;
 					return;
 				}
 			}
@@ -122,6 +119,18 @@ public final class Court {
 		// TODO: net collision 
 		ball.velocityY += Physics.aerodynamicDragDeceleration(ball.velocityY) * secFraction;
 		//Log.w(getClass().getName(), String.valueOf(ball.velocityY));
+	}
+
+	private boolean ballHitPlayer(int offsetX, int offsetY) {
+		return offsetX >= -playerWidth && offsetX <= ballSize && ball.positionY + ballSize > floorLevel && offsetY >= -ballSize;
+	}
+
+	private void bounceBallOffPlayer(Player player, int offsetX) {
+		double alphaX = -2f * ((double) offsetX + ballSize) / ((double) playerWidth + ballSize) * PI / 4.0;
+		double alphaY = ((double) ball.positionY - floorLevel - ballSize) / ((double) player.positionY - floorLevel - ballSize) * PI / 4.0;
+		double alpha = alphaX + alphaY;
+		ball.velocityX = 200f * (float) cos(alpha);
+		ball.velocityY = 200f * (float) sin(alpha);
 	}
 	
 	private void ballTouchedGround() {
