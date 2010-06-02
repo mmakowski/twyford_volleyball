@@ -45,6 +45,8 @@ public final class Court {
 	private int playerHeight;
 	private int courtOffset;
 	private int[] points = {0, 0};
+	private int touchCount;
+	private long lastTouchTime = 0;
 	
 	private Random random = new Random();
 	
@@ -112,8 +114,19 @@ public final class Court {
 			for (Player player : players[t]) {
 				int offsetX = player.positionX - ball.positionX;
 				int offsetY = player.positionY - ball.positionY;
-				// TODO: better player bounce
 				if (ballHitPlayer(offsetX, offsetY)) {
+					long currentTouchTime = System.currentTimeMillis();
+					if (lastTouch == t) {
+						if (currentTouchTime - lastTouchTime > MAX_SINGLE_TOUCH_TIME) touchCount++;
+					} else {
+						touchCount = 1;
+					}
+					lastTouchTime = currentTouchTime;
+					touchCount = lastTouch == t ? touchCount + 1 : 1;
+					if (touchCount > 3) {
+						tooManyTouches();
+						return;
+					}
 					bounceBallOffPlayer(player, offsetX);
 					lastTouch = t;
 					return;
@@ -132,6 +145,13 @@ public final class Court {
 		// TODO: net collision 
 		ball.velocityY += Physics.aerodynamicDragDeceleration(ball.velocityY) * secFraction;
 		//Log.w(getClass().getName(), String.valueOf(ball.velocityY));
+	}
+
+	private void tooManyTouches() {
+		int winner = opponent(lastTouch);
+		points[winner]++;
+		// TODO: check for victory
+		enterState(winner == HUMAN_TEAM ? STATE_HUMAN_TEAM_SERVE : STATE_AI_TEAM_SERVE);
 	}
 
 	private boolean ballHitPlayer(int offsetX, int offsetY) {
