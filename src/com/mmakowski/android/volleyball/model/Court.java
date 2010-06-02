@@ -203,5 +203,9 @@ public final class Court {
 	private final int opponent(int team) {
 		return team == HUMAN_TEAM ? AI_TEAM : HUMAN_TEAM;
 	}
+
+	public String getScore() {
+		return points[HUMAN_TEAM] + ":" + points[AI_TEAM];
+	}
 	
 }

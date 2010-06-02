@@ -14,7 +14,7 @@ public class Player {
 	public int ballTargetX;
 	public int ballTargetY;
 	// skills
-	public float accuracy = 0.9f;
+	public float accuracy = 0.4f;
 	
 	Player(int team, int positionX, int positionY) {
 		this.team = team;
