@@ -57,7 +57,7 @@ public final class Court {
 		for (int t = 0; t < 2; t++) {
 			for (int j = 0; j < playersPerTeam; j++) {
 				players[t][j] = new Player(t, netPositionX + (t * 2 - 1) * (j + 1) * width / (2 * (playersPerTeam + 1)) - (playerWidth / 2), playerPosY);
-				players[t][j].setDefaultBallTarget(this, oppositeSide(t));
+				players[t][j].setDefaultBallTarget(this, oppositeSideDirection(t));
 			}
 		}
 		ball = new Ball();
@@ -159,15 +159,15 @@ public final class Court {
 	}
 
 	private void bounceBallOffPlayer(Player player, int offsetX) {
-		int oppositeSide = oppositeSide(player.team);
+		int oppositeSideDirection = oppositeSideDirection(player.team);
 		int idealY = player.positionY + ballSize;
-		int idealX = oppositeSide == SIDE_LEFT ? player.positionX - ballSize : player.positionX + playerWidth;
+		int idealX = oppositeSideDirection == SIDE_LEFT ? player.positionX - ballSize : player.positionX + playerWidth;
 		float ballPositionBonusX = 1f - abs(((float) ball.positionX - idealX) / ((float) playerWidth + (float) ballSize)); // worst X is at the opposite edge of the player
 		float ballPositionBonusY = 1f - abs(((float) ball.positionY - idealY) / ((float) playerHeight)); // worst Y is at the feet of the player;
 		float ballPositionBonus = ballPositionBonusX * ballPositionBonusY;
 		  
 		ball.velocityY = 180f * penalty(ballPositionBonus, MAX_DIFFICULT_POSITION_PENALTY) * penalty(player.accuracy, MAX_PLAYER_INACCURACY_PENALTY);
-		ball.velocityX = 120f * oppositeSide * (float) pow(((float) abs(player.positionX - player.ballTargetX)) / ((float) width), 2)
+		ball.velocityX = 120f * oppositeSideDirection * (float) pow(((float) abs(player.positionX - player.ballTargetX)) / ((float) width), 2)
 				* penalty(ballPositionBonus, MAX_DIFFICULT_POSITION_PENALTY) * penalty(player.accuracy, MAX_PLAYER_INACCURACY_PENALTY);
 	}
 	
@@ -180,7 +180,7 @@ public final class Court {
 		return 2f * ((float) random.nextGaussian() - 0.5f) * (1f - bonus) * max + 1f;
 	}
 
-	private int oppositeSide(int team) {
+	private int oppositeSideDirection(int team) {
 		return team == AI_TEAM ? humanSide : -1 * humanSide;  
 	}
 
