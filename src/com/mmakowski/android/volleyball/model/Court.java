@@ -24,19 +24,27 @@ public final class Court {
 	public static final int AI_TEAM = 1;
 	public static final int SIDE_LEFT = -1;
 	public static final int SIDE_RIGHT = 1;
+
+	private static final int PLAYERS_PER_TEAM = 2;
+	private static final int SETTER = 0;
+	private static final int ATTACKER = 1;
 	
 	private static final int STATE_NOT_SET_UP = 0;
 	private static final int STATE_HUMAN_TEAM_SERVE = 1;
 	private static final int STATE_AI_TEAM_SERVE = 2;
-	private static final int STATE_PLAY = 3;
+	private static final int STATE_HUMAN_TEAM_PLAY = 3;
+	private static final int STATE_AI_TEAM_PLAY = 4;
 	
+	private static final float[] INITIAL_OFFSET = { 0.025f, 0.33f };
 	private int state = STATE_NOT_SET_UP;
-	private int lastTouch;
+	private int lastTeamTouch;
+	private int[] lastPlayerTouch;
 	private int viewWidth;
 	public int width;
 	public int netPositionX;
 	public int netHeight;
 	public Player[][] players;
+	private int[] playerGoingForTheBall = new int[2];
 	public Ball ball;
 	public int floorLevel;
 	public int humanSide = SIDE_LEFT;
@@ -50,18 +58,23 @@ public final class Court {
 	
 	private Random random = new Random();
 	
-	public synchronized void setUp(int playersPerTeam) {
-		players = new Player[2][playersPerTeam];
+	public synchronized void setUp() {
+		players = new Player[2][PLAYERS_PER_TEAM];
 		int playerPosY = playerHeight + floorLevel;
-		// distribute the players evenly in the court
 		for (int t = 0; t < 2; t++) {
-			for (int j = 0; j < playersPerTeam; j++) {
-				players[t][j] = new Player(t, netPositionX + (t * 2 - 1) * (j + 1) * width / (2 * (playersPerTeam + 1)) - (playerWidth / 2), playerPosY);
-				players[t][j].setDefaultBallTarget(this, oppositeSideDirection(t));
+			int dir = teamSideDirection(t);
+			for (int p = 0; p < PLAYERS_PER_TEAM; p++) {
+				players[t][p] = new Player(t, netPositionX + dir * ((int) (width * INITIAL_OFFSET[p]) + (dir == SIDE_LEFT ? playerWidth : 0)), playerPosY);
+				players[t][p].setDefaultBallTarget(this, oppositeSideDirection(t));
 			}
 		}
 		ball = new Ball();
+		lastPlayerTouch = new int[] { -1, -1};
 		enterState(STATE_HUMAN_TEAM_SERVE);
+	}
+
+	private int teamSideDirection(int team) {
+		return team * 2 - 1;
 	}
 
 	private void enterState(int newState) {
@@ -71,16 +84,26 @@ public final class Court {
 			ball.positionY = netHeight + floorLevel;
 			ball.velocityX = 230;
 			ball.velocityY = 100;
-			lastTouch = HUMAN_TEAM;
-			enterState(STATE_PLAY);
+			playerGoingForTheBall[HUMAN_TEAM] = playerGoingForTheBall[AI_TEAM] = ATTACKER;
+			lastTeamTouch = HUMAN_TEAM;
+			enterState(STATE_AI_TEAM_PLAY);
 			break;
 		case STATE_AI_TEAM_SERVE:
 			ball.positionX = viewWidth - courtOffset / 2;
 			ball.positionY = netHeight + floorLevel;
 			ball.velocityX = -230;
 			ball.velocityY = 100;
-			lastTouch = AI_TEAM;
-			enterState(STATE_PLAY);
+			playerGoingForTheBall[HUMAN_TEAM] = playerGoingForTheBall[AI_TEAM] = ATTACKER;
+			lastTeamTouch = AI_TEAM;
+			enterState(STATE_HUMAN_TEAM_PLAY);
+			break;
+		case STATE_HUMAN_TEAM_PLAY:
+			for (Player player : players[AI_TEAM]) player.goHome();
+			playerGoingForTheBall[AI_TEAM] = ATTACKER;
+			break;
+		case STATE_AI_TEAM_PLAY:
+			for (Player player : players[HUMAN_TEAM]) player.goHome();
+			playerGoingForTheBall[HUMAN_TEAM] = ATTACKER;
 			break;
 		}
 		state = newState;
@@ -106,49 +129,70 @@ public final class Court {
 	}
 
 	private void updateBall(float secFraction) {
-		ball.positionX = (int) (ball.positionX + ball.velocityX * secFraction);
+		int nextX = (int) (ball.positionX + ball.velocityX * secFraction);
+		int sideEnteredByBall = ballEnteredSide(ball.positionX, nextX);
+		switch (sideEnteredByBall) {
+		case SIDE_LEFT: enterState(STATE_HUMAN_TEAM_PLAY);
+		case SIDE_RIGHT: enterState(STATE_AI_TEAM_PLAY);
+		}
+		ball.positionX = nextX;
 		ball.velocityX += Physics.aerodynamicDragDeceleration(ball.velocityX) * secFraction;  
-		//Log.w(getClass().getName(), String.valueOf(ball.velocityX));
 		ball.positionY = (int) (ball.positionY + ball.velocityY * secFraction);
+		if (ball.positionY - ballSize <= floorLevel) {
+			ballTouchedGround();
+		} else {
+			ball.velocityY -= Physics.GRAVITY * secFraction;
+		}
+		ball.velocityY += Physics.aerodynamicDragDeceleration(ball.velocityY) * secFraction;
+		processPlayerCollision();
+		// TODO: net collision 
+	}
+
+	/**
+	 * @return SIDE_LEFT if the ball has crossed from right to left, SIDE_RIGHT if the ball has crossed from left to right, 0 otherwise
+	 */
+	private int ballEnteredSide(int currX, int nextX) {
+		if (currX + ballSize / 2 < netPositionX && nextX + ballSize / 2 >= netPositionX) return SIDE_RIGHT;
+		if (currX + ballSize / 2 > netPositionX && nextX + ballSize / 2 <= netPositionX) return SIDE_LEFT;
+		return 0;
+	}
+
+	private void processPlayerCollision() {
 		for (int t = 0; t < 2; t++) {
-			for (Player player : players[t]) {
+			for (int p = 0; p < PLAYERS_PER_TEAM; p++) {
+				Player player = players[t][p];
 				int offsetX = player.positionX - ball.positionX;
 				int offsetY = player.positionY - ball.positionY;
 				if (ballHitPlayer(offsetX, offsetY)) {
 					long currentTouchTime = System.currentTimeMillis();
-					if (lastTouch == t) {
+					if (lastTeamTouch == t) {
 						if (currentTouchTime - lastTouchTime > MAX_SINGLE_TOUCH_TIME) touchCount++;
 					} else {
 						touchCount = 1;
 					}
 					lastTouchTime = currentTouchTime;
-					touchCount = lastTouch == t ? touchCount + 1 : 1;
+					touchCount = lastTeamTouch == t ? touchCount + 1 : 1;
 					if (touchCount > 3) {
 						tooManyTouches();
 						return;
 					}
 					bounceBallOffPlayer(player, offsetX);
-					lastTouch = t;
+					playerGoingForTheBall[t] = otherPlayer(p);
+					lastTeamTouch = t;
+					lastPlayerTouch[t] = p;
+					player.goHome();
 					return;
 				}
 			}
 		}
-		if (ball.positionY - ballSize <= floorLevel) {
-			ballTouchedGround();
-			/*
-			ball.positionY = (int) (floorLevel + ballSize + (floorLevel - (ball.positionY - ballSize)) * Physics.BALL_REBOUND_FACTOR);
-			ball.velocityY = -ball.velocityY * Physics.BALL_REBOUND_FACTOR;
-			*/
-		} else {
-			ball.velocityY -= Physics.GRAVITY * secFraction;
-		}
-		// TODO: net collision 
-		ball.velocityY += Physics.aerodynamicDragDeceleration(ball.velocityY) * secFraction;
-		//Log.w(getClass().getName(), String.valueOf(ball.velocityY));
+	}
+
+	private int otherPlayer(int player) {
+		return player == SETTER ? ATTACKER : SETTER;
 	}
 
 	private void tooManyTouches() {
-		int winner = opponent(lastTouch);
+		int winner = opponent(lastTeamTouch);
 		points[winner]++;
 		// TODO: check for victory
 		enterState(winner == HUMAN_TEAM ? STATE_HUMAN_TEAM_SERVE : STATE_AI_TEAM_SERVE);
@@ -181,13 +225,13 @@ public final class Court {
 	}
 
 	private int oppositeSideDirection(int team) {
-		return team == AI_TEAM ? humanSide : -1 * humanSide;  
+		return teamSideDirection(team) * -1;  
 	}
 
 	private void ballTouchedGround() {
 		int winner;
 		int x = ball.positionX + ballSize / 2;
-		if (x < courtOffset || x > viewWidth - courtOffset) winner = opponent(lastTouch);
+		if (x < courtOffset || x > viewWidth - courtOffset) winner = opponent(lastTeamTouch);
 		else if (x <= netPositionX) winner = AI_TEAM;
 		else winner = HUMAN_TEAM;
 		points[winner]++;
@@ -217,7 +261,7 @@ public final class Court {
 		else if (targetX + playerWidth > viewWidth) targetX = viewWidth - playerWidth;
 		else if (team == HUMAN_TEAM && targetX + playerWidth > netPositionX) targetX = netPositionX - playerWidth;
 		else if (team == AI_TEAM && targetX < netPositionX) targetX = netPositionX;
-		players[team][0].targetPositionX = targetX;
+		players[team][playerGoingForTheBall[team]].targetPositionX = targetX;
 	}
 
 	private final int opponent(int team) {

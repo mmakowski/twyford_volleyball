@@ -11,8 +11,6 @@ public class Follower implements AI {
 	public final void movePlayers(Court court) {
 		if (court.ball.positionX > court.netPositionX) {
 			court.movePlayer(Court.AI_TEAM, court.ball.positionX);
-		} else {
-			court.movePlayer(Court.AI_TEAM, court.netPositionX + court.width / 3);
-		}
+		} 
 	}
 }

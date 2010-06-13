@@ -24,8 +24,6 @@ import com.mmakowski.android.volleyball.model.Court;
  * @author mmakowski
  */
 public class Volleyball extends Activity implements SurfaceHolder.Callback {
-	private static final int PLAYERS_PER_TEAM = 1;
-	
 	private static final int MENU_RESTART = 1;
 	private static final int MENU_PAUSE = 2;
 	
@@ -93,7 +91,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 	}
 
 	private boolean menuRestart() {
-		court.setUp(PLAYERS_PER_TEAM);
+		court.setUp();
 		thread.pause();
         return true;
 	}
@@ -117,7 +115,7 @@ public class Volleyball extends Activity implements SurfaceHolder.Callback {
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 		court.setViewDimensions(width, height); 
-    	if (!court.isSetUp()) court.setUp(PLAYERS_PER_TEAM);
+    	if (!court.isSetUp()) court.setUp();
 		view.setSurfaceSize(width, height);
 	}
 

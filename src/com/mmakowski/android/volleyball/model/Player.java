@@ -7,9 +7,12 @@ package com.mmakowski.android.volleyball.model;
  */
 public class Player {
 	public final int team;
+	public int homePositionX;
+	public int homePositionY;
 	public int positionX;
 	public int positionY;
 	public int targetPositionX;
+	
 	// where the player wants to send the ball
 	public int ballTargetX;
 	public int ballTargetY;
@@ -18,8 +21,8 @@ public class Player {
 	
 	Player(int team, int positionX, int positionY) {
 		this.team = team;
-		this.positionX = positionX;
-		this.positionY = positionY;
+		this.homePositionX = this.positionX = positionX;
+		this.homePositionY = this.positionY = positionY;
 		targetPositionX = positionX;
 	}
 	
@@ -27,5 +30,9 @@ public class Player {
 	public void setDefaultBallTarget(Court court, int opponentSide) {
 		ballTargetX = court.netPositionX + opponentSide * court.width / 2; 
 		ballTargetY = court.floorLevel;
+	}
+
+	public void goHome() {
+		targetPositionX = homePositionX;
 	}
 }
