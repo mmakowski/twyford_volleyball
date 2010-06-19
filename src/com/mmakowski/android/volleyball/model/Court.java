@@ -132,8 +132,8 @@ public final class Court {
 		int nextX = (int) (ball.positionX + ball.velocityX * secFraction);
 		int sideEnteredByBall = ballEnteredSide(ball.positionX, nextX);
 		switch (sideEnteredByBall) {
-		case SIDE_LEFT: enterState(STATE_HUMAN_TEAM_PLAY);
-		case SIDE_RIGHT: enterState(STATE_AI_TEAM_PLAY);
+		case SIDE_LEFT: enterState(STATE_HUMAN_TEAM_PLAY); break;
+		case SIDE_RIGHT: enterState(STATE_AI_TEAM_PLAY); break;
 		}
 		ball.positionX = nextX;
 		ball.velocityX += Physics.aerodynamicDragDeceleration(ball.velocityX) * secFraction;  
